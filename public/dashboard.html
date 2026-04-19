@@ -1,0 +1,107 @@
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+  alert("Please login first");
+  window.location.href = "index.html";
+}
+
+// ➕ ADD STUDY
+async function addStudy() {
+  const subject = document.getElementById("subject").value;
+  const time = document.getElementById("time").value;
+
+  await fetch("/add-study", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "authorization": token
+    },
+    body: JSON.stringify({ subject, time })
+  });
+
+  document.getElementById("subject").value = "";
+  document.getElementById("time").value = "";
+
+  loadAll();
+}
+
+// 🎯 SET GOAL
+async function setGoal() {
+  const goal = document.getElementById("goalInput").value;
+
+  await fetch("/set-goal", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "authorization": token
+    },
+    body: JSON.stringify({ goal })
+  });
+
+  document.getElementById("goalInput").value = "";
+
+  loadAll();
+}
+
+// ❌ DELETE STUDY
+async function deleteStudy(id) {
+  await fetch("/delete-study/" + id, {
+    method: "DELETE",
+    headers: { authorization: token }
+  });
+
+  loadAll();
+}
+
+// 📊 LOAD DATA
+async function loadAll() {
+  const stats = await fetch("/stats", {
+    headers: { authorization: token }
+  }).then(r => r.json());
+
+  document.getElementById("total").innerText =
+    "📊 Total: " + stats.totalTime + " mins";
+
+  document.getElementById("streak").innerText =
+    "🔥 Streak: " + stats.streak + " days";
+
+  document.getElementById("goal").innerText =
+    "🎯 Goal: " + stats.goal +
+    (stats.completed ? " ✅ Completed" : " ❌ Pending");
+
+  // 📚 RECORDS
+  const records = await fetch("/records", {
+    headers: { authorization: token }
+  }).then(r => r.json());
+
+  const recUI = document.getElementById("records");
+  recUI.innerHTML = "";
+
+  records.reverse().forEach(r => {
+    let li = document.createElement("li");
+    li.innerHTML = `
+      ${r.subject} (${r.time} min)
+      <small>${r.date}</small>
+      <button class="danger" onclick="deleteStudy('${r._id}')">X</button>
+    `;
+    recUI.appendChild(li);
+  });
+
+  // 🧠 SUGGESTIONS (FIXED)
+  const sugg = await fetch("/suggestions", {
+    headers: { authorization: token }
+  }).then(r => r.json());
+
+  const sugUI = document.getElementById("suggestions");
+  sugUI.innerHTML = "";
+
+  sugg.forEach(s => {
+    let li = document.createElement("li");
+    li.innerText = s;
+    sugUI.appendChild(li);
+  });
+}
+
+loadAll();
+</script>
